@@ -1,0 +1,224 @@
+getwd()
+load("Type_fit_windows.Rdata")
+load("Type_fit.Rdata")
+load("Type_gof.Rdata")
+load("Type_gof_windows.Rdata")
+
+install.packages("plotly.io")
+library(plotly)
+library(plotly.io)
+
+?write_html
+prox <- read.csv("Proximity.csv")
+SMS <- read.csv("SMS.csv")
+subjects <- read.csv("Subjects.csv")
+calls <- read.csv("Calls.csv")
+
+############data prep######
+prox <- subset(prox, prob2 >= 0.9)
+prox <- prox[,c(3,1,2)]
+prox$type <- rep(0, nrow(prox))
+names(prox) <- c("time", "actor1", "actor2", "type")
+
+calls <- calls[,c(2,1,4)]
+calls$type <- rep(1,nrow(calls))
+names(calls) <- c("time", "actor1", "actor2", "type")
+
+SMS <- SMS[,c(2,1,4)]
+SMS$type <- rep(1, nrow(SMS))
+names(SMS) <- c("time", "actor1", "actor2", "type")
+
+
+directed <- rbind(calls, SMS)
+all_events <- rbind(prox, directed)
+
+###########data cleaning#####
+
+all_events <- all_events[complete.cases(all_events),]
+
+list_doubles <- c()
+for (i in 1:nrow(all_events)) {
+  if (all_events$actor1[i] == all_events$actor2[i]) {
+    list_doubles <- append(list_doubles, i)
+  }
+}
+all_events <- all_events[-list_doubles, ]
+
+
+###data prep2###
+
+
+feb_09<- as.numeric(ymd_hms("2009-02-28 23:59:59"))
+apr_09<- as.numeric(ymd_hms("2009-04-01 00:00:00"))
+all_events$time <- as.numeric(ymd_hms(all_events$time))
+all_events <- unique(all_events)
+all_events <- all_events[order(all_events$time),]
+
+all_events <- all_events %>% filter(time > feb_09 & time < apr_09)
+all_events$time <- (all_events$time - feb_09)
+
+rownames(all_events) <- 1:nrow(all_events)
+
+windows <- data.frame(
+  begin = c(0, seq(from = 259201, to = all_events$time[nrow(all_events)] - 518400, by = 259200)),
+  end = c(seq(from = 518400, to = all_events$time[nrow(all_events)]-259200, by = 259200), all_events$time[nrow(all_events)]))
+
+# Find the event indices for when the windows start and stop
+windows$start <- apply(windows, 1, function(x) {
+  start <- min(which(all_events$time > as.numeric(x[1])))
+  ifelse(start == 0, 1, start)
+})
+windows$stop <- apply(windows, 1, function(x) {
+  stop <- min(which(all_events$time > as.numeric(x[2])))-1
+  ifelse(stop == Inf, nrow(all_events), stop)
+})
+
+
+
+
+names <- c("Baseline", "Inertia real DV real" , "Inertia digital DV real", "Inertia real DV digital" , "Inertia digital DV digital","Same Floor", "School Year", "Diet", "Smoking", "Aerobic", "Sport", "Friends", "Music", "Activities", "Interested in Politics", "Political party interested")
+
+
+####3D#####
+
+vector1 <- c()
+vector2 <- c()
+vector3 <- c()
+vector4 <- c()
+vector5 <- c()
+vector6 <- c()
+
+
+for (i in 1:nrow(windows)){
+  for (k in 1:length(fit61[[1]][[4]])){
+    if (is.na(fit11[[i]][[4]][k]) == FALSE){
+      vector1 <- c(vector1, fit11[[i]][[4]][k])
+    }
+    if (is.na(fit21[[i]][[4]][k]) == FALSE){
+      vector2 <- c(vector2, fit21[[i]][[4]][k])
+    }
+    if (is.na(fit31[[i]][[4]][k]) == FALSE){
+      vector3 <- c(vector3, fit31[[i]][[4]][k])
+    }
+    if (is.na(fit41[[i]][[4]][k]) == FALSE){
+      vector4 <- c(vector4, fit41[[i]][[4]][k])
+    }
+    if (is.na(fit51[[i]][[4]][k]) == FALSE){
+      vector5 <- c(vector5, fit51[[i]][[4]][k])
+    }
+    if (is.na(fit61[[i]][[4]][k]) == FALSE){
+      vector6 <- c(vector6, fit61[[i]][[4]][k])
+    }
+  }
+}
+
+
+which_pred_6 <- 1:length(vector6)
+which_pred_5 <- 1:length(vector5)
+which_pred_4 <- 1:length(vector4)
+which_pred_3 <- 1:length(vector3)
+which_pred_2 <- 1:length(vector2)
+which_pred_1 <- 1:length(vector1)
+
+
+df_6 <- data.frame(vector6, which_pred_6)
+for(i in 1:length(vector6)-1){
+  y <- (i%%length(fit61[[1]][[4]]))+1
+  df_6$which_pred_6[i+1] <- names[y]
+}
+df_5 <- data.frame(vector5, which_pred_5)
+for(i in 1:length(vector5)-1){
+  y <- (i%%length(fit51[[1]][[4]]))+1
+  df_5$which_pred_5[i+1] <- names[y]
+}
+df_4 <- data.frame(vector4, which_pred_4)
+for(i in 1:length(vector4)-1){
+  y <- (i%%length(fit41[[1]][[4]]))+1
+  df_4$which_pred_4[i+1] <- names[y]
+}
+df_3 <- data.frame(vector3, which_pred_3)
+for(i in 1:length(vector3)-1){
+  y <- (i%%length(fit31[[1]][[4]]))+1
+  df_3$which_pred_3[i+1] <- names[y]
+}
+df_2 <- data.frame(vector2, which_pred_2)
+for(i in 1:length(vector2)-1){
+  y <- (i%%length(fit21[[1]][[4]]))+1
+  df_2$which_pred_2[i+1] <- names[y]
+}
+df_1 <- data.frame(vector1, which_pred_1)
+for(i in 1:length(vector1)-1){
+  y <- (i%%length(fit11[[1]][[4]]))+1
+  df_1$which_pred_1[i+1] <- names[y]
+}
+
+for(i in 1:nrow(windows)){
+  df_6$window[((i-1)*length(fit61[[1]][[4]])+1):(i*length(fit61[[1]][[4]]))] <- i
+  df_5$window[((i-1)*length(fit51[[1]][[4]])+1):(i*length(fit51[[1]][[4]]))] <- i
+  df_4$window[((i-1)*length(fit41[[1]][[4]])+1):(i*length(fit41[[1]][[4]]))] <- i
+  df_3$window[((i-1)*length(fit31[[1]][[4]])+1):(i*length(fit31[[1]][[4]]))] <- i
+  df_2$window[((i-1)*length(fit21[[1]][[4]])+1):(i*length(fit21[[1]][[4]]))] <- i
+  df_1$window[((i-1)*length(fit11[[1]][[4]])+1):(i*length(fit11[[1]][[4]]))] <- i
+}
+
+names(df_6) <- c("Coefficient", "Predictor", "window")
+names(df_5) <- c("Coefficient", "Predictor", "window")
+names(df_4) <- c("Coefficient", "Predictor", "window")
+names(df_3) <- c("Coefficient", "Predictor", "window")
+names(df_2) <- c("Coefficient", "Predictor", "window")
+names(df_1) <- c("Coefficient", "Predictor", "window")
+
+df_1 <- df_1[order(df_1$Predictor),]
+df_2 <- df_2[order(df_2$Predictor),]
+df_3 <- df_3[order(df_3$Predictor),]
+df_4 <- df_4[order(df_4$Predictor),]
+df_5 <- df_5[order(df_5$Predictor),]
+df_6 <- df_6[order(df_6$Predictor),]
+
+
+df_1$model <- "Model 1"
+df_2$model <- "Model 2"
+df_3$model <- "Model 3"
+df_4$model <- "Model 4"
+df_5$model <- "Model 5"
+df_6$model <- "Model 6"
+
+
+all_events <- rbind(df_1,df_2,df_3,df_4,df_5,df_6)
+all_events <- all_events[order(all_events$Predictor),]
+
+
+names[2:16]
+inter <- all_events[!(all_events$Predictor=="Baseline"),]
+
+fig <- plot_ly(inter, 
+               x= ~Predictor, 
+               y = ~window, 
+               z= ~Coefficient, 
+               type="scatter3d", 
+               mode="markers", 
+               color=~model
+)
+axx <- list(
+  ticketmode = 'array',
+  ticktext = names[2:16],
+  tickvals = 0:15,
+  range = 0:15
+)
+axy <- list(
+  ticketmode = "array",
+  ticktext = 1:9,
+  nticks = nrow(windows),
+  range = 1:nrow(windows)
+)
+fig <- fig %>% layout(scene = list(xaxis=axx, yaxis=axy))
+fig
+write_html(fig, file = "test.html", auto_open=TRUE)
+?write_html
+
+
+
+
+
+
+
