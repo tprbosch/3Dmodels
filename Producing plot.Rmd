@@ -17,8 +17,6 @@ When you click the **Knit** button a document will be generated that includes bo
 ```{r test}
 load("Type_fit_windows.Rdata")
 
-install.packages("plotly")
-install.packages("lubridate")
 library(plotly)
 library("lubridate")
 
