@@ -1,10 +1,7 @@
-getwd()
-load("Type_fit_windows.Rdata")
-load("Type_fit.Rdata")
-load("Type_gof.Rdata")
-load("Type_gof_windows.Rdata")
 
-install.packages("plotly.io")
+load("Type_fit_windows.Rdata")
+
+install.packages("plotly")
 library(plotly)
 library(plotly.io)
 
